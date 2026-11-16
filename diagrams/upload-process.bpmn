@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_upload" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_upload">
+    <bpmn:participant id="Participant_rakurs" name="Загрузка и публикация видео на видеохостинге «Ракурс»" processRef="Process_upload" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_upload" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_upload">
+      <bpmn:lane id="Lane_owner" name="Владелец видео">
+        <bpmn:flowNodeRef>Start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>SelectFile</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Metadata</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Settings</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Join</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Submit</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndPublished</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndRejected</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_platform" name="Платформа (автоматически)">
+        <bpmn:flowNodeRef>CheckFile</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>FileOk</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Split</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Upload</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Transcode</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>AutoCheck</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>CheckResult</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Approved</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Scheduled</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Timer</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Publish</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Reject</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_moderator" name="Модератор">
+        <bpmn:flowNodeRef>ManualCheck</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Decision</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start" name="Автор готов опубликовать видео">
+      <bpmn:outgoing>f01</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="SelectFile" name="Выбрать видеофайл в студии">
+      <bpmn:incoming>f01</bpmn:incoming>
+      <bpmn:incoming>f04</bpmn:incoming>
+      <bpmn:outgoing>f02</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="CheckFile" name="Проверить формат, размер и длительность файла">
+      <bpmn:incoming>f02</bpmn:incoming>
+      <bpmn:outgoing>f03</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="FileOk" name="Файл подходит?">
+      <bpmn:incoming>f03</bpmn:incoming>
+      <bpmn:outgoing>f04</bpmn:outgoing>
+      <bpmn:outgoing>f05</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:parallelGateway id="Split">
+      <bpmn:incoming>f05</bpmn:incoming>
+      <bpmn:outgoing>f06</bpmn:outgoing>
+      <bpmn:outgoing>f07</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:task id="Metadata" name="Ввести название и описание">
+      <bpmn:incoming>f06</bpmn:incoming>
+      <bpmn:outgoing>f08</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Settings" name="Выбрать обложку, доступ и время публикации">
+      <bpmn:incoming>f08</bpmn:incoming>
+      <bpmn:outgoing>f09</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Upload" name="Принять файл с докачкой при обрыве связи">
+      <bpmn:incoming>f07</bpmn:incoming>
+      <bpmn:outgoing>f10</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="d01">
+        <bpmn:targetRef>Storage</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Transcode" name="Перекодировать в набор качеств, подготовить кадры для обложки">
+      <bpmn:incoming>f10</bpmn:incoming>
+      <bpmn:outgoing>f11</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="d02">
+        <bpmn:targetRef>Storage</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataStoreReference id="Storage" name="Хранилище видео" />
+    <bpmn:parallelGateway id="Join">
+      <bpmn:incoming>f09</bpmn:incoming>
+      <bpmn:incoming>f11</bpmn:incoming>
+      <bpmn:outgoing>f12</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:task id="Submit" name="Отправить видео на публикацию">
+      <bpmn:incoming>f12</bpmn:incoming>
+      <bpmn:outgoing>f13</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="AutoCheck" name="Автоматически проверить видео, название и описание">
+      <bpmn:incoming>f13</bpmn:incoming>
+      <bpmn:outgoing>f14</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="CheckResult" name="Есть признаки нарушений?">
+      <bpmn:incoming>f14</bpmn:incoming>
+      <bpmn:outgoing>f15</bpmn:outgoing>
+      <bpmn:outgoing>f16</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="ManualCheck" name="Проверить видео вручную">
+      <bpmn:incoming>f16</bpmn:incoming>
+      <bpmn:outgoing>f17</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Decision" name="Нарушение подтверждено?">
+      <bpmn:incoming>f17</bpmn:incoming>
+      <bpmn:outgoing>f18</bpmn:outgoing>
+      <bpmn:outgoing>f19</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="Approved">
+      <bpmn:incoming>f15</bpmn:incoming>
+      <bpmn:incoming>f18</bpmn:incoming>
+      <bpmn:outgoing>f20</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="Scheduled" name="Назначено время публикации?">
+      <bpmn:incoming>f20</bpmn:incoming>
+      <bpmn:outgoing>f21</bpmn:outgoing>
+      <bpmn:outgoing>f22</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:intermediateCatchEvent id="Timer" name="Наступило время публикации">
+      <bpmn:incoming>f22</bpmn:incoming>
+      <bpmn:outgoing>f23</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDefinition" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:task id="Publish" name="Опубликовать видео и уведомить подписчиков">
+      <bpmn:incoming>f21</bpmn:incoming>
+      <bpmn:incoming>f23</bpmn:incoming>
+      <bpmn:outgoing>f24</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Reject" name="Отклонить публикацию и сообщить автору причину">
+      <bpmn:incoming>f19</bpmn:incoming>
+      <bpmn:outgoing>f25</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndPublished" name="Видео опубликовано">
+      <bpmn:incoming>f24</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndRejected" name="Публикация отклонена">
+      <bpmn:incoming>f25</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f01" sourceRef="Start" targetRef="SelectFile" />
+    <bpmn:sequenceFlow id="f02" sourceRef="SelectFile" targetRef="CheckFile" />
+    <bpmn:sequenceFlow id="f03" sourceRef="CheckFile" targetRef="FileOk" />
+    <bpmn:sequenceFlow id="f04" name="нет" sourceRef="FileOk" targetRef="SelectFile" />
+    <bpmn:sequenceFlow id="f05" name="да" sourceRef="FileOk" targetRef="Split" />
+    <bpmn:sequenceFlow id="f06" sourceRef="Split" targetRef="Metadata" />
+    <bpmn:sequenceFlow id="f07" sourceRef="Split" targetRef="Upload" />
+    <bpmn:sequenceFlow id="f08" sourceRef="Metadata" targetRef="Settings" />
+    <bpmn:sequenceFlow id="f09" sourceRef="Settings" targetRef="Join" />
+    <bpmn:sequenceFlow id="f10" sourceRef="Upload" targetRef="Transcode" />
+    <bpmn:sequenceFlow id="f11" sourceRef="Transcode" targetRef="Join" />
+    <bpmn:sequenceFlow id="f12" sourceRef="Join" targetRef="Submit" />
+    <bpmn:sequenceFlow id="f13" sourceRef="Submit" targetRef="AutoCheck" />
+    <bpmn:sequenceFlow id="f14" sourceRef="AutoCheck" targetRef="CheckResult" />
+    <bpmn:sequenceFlow id="f15" name="нет" sourceRef="CheckResult" targetRef="Approved" />
+    <bpmn:sequenceFlow id="f16" name="да" sourceRef="CheckResult" targetRef="ManualCheck" />
+    <bpmn:sequenceFlow id="f17" sourceRef="ManualCheck" targetRef="Decision" />
+    <bpmn:sequenceFlow id="f18" name="нет" sourceRef="Decision" targetRef="Approved" />
+    <bpmn:sequenceFlow id="f19" name="да" sourceRef="Decision" targetRef="Reject" />
+    <bpmn:sequenceFlow id="f20" sourceRef="Approved" targetRef="Scheduled" />
+    <bpmn:sequenceFlow id="f21" name="нет" sourceRef="Scheduled" targetRef="Publish" />
+    <bpmn:sequenceFlow id="f22" name="да" sourceRef="Scheduled" targetRef="Timer" />
+    <bpmn:sequenceFlow id="f23" sourceRef="Timer" targetRef="Publish" />
+    <bpmn:sequenceFlow id="f24" sourceRef="Publish" targetRef="EndPublished" />
+    <bpmn:sequenceFlow id="f25" sourceRef="Reject" targetRef="EndRejected" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_upload">
+    <bpmndi:BPMNPlane id="Plane_upload" bpmnElement="Collaboration_upload">
+      <bpmndi:BPMNShape id="Participant_rakurs_di" bpmnElement="Participant_rakurs" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="2340" height="700" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_owner_di" bpmnElement="Lane_owner" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="2310" height="220" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_platform_di" bpmnElement="Lane_platform" isHorizontal="true">
+        <dc:Bounds x="190" y="300" width="2310" height="300" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_moderator_di" bpmnElement="Lane_moderator" isHorizontal="true">
+        <dc:Bounds x="190" y="600" width="2310" height="180" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_di" bpmnElement="Start">
+        <dc:Bounds x="250" y="172" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="220" y="215" width="96" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SelectFile_di" bpmnElement="SelectFile">
+        <dc:Bounds x="320" y="150" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CheckFile_di" bpmnElement="CheckFile">
+        <dc:Bounds x="480" y="390" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="FileOk_di" bpmnElement="FileOk" isMarkerVisible="true">
+        <dc:Bounds x="650" y="405" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="632" y="462" width="86" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Split_di" bpmnElement="Split">
+        <dc:Bounds x="760" y="405" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Metadata_di" bpmnElement="Metadata">
+        <dc:Bounds x="870" y="150" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Settings_di" bpmnElement="Settings">
+        <dc:Bounds x="1030" y="150" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Upload_di" bpmnElement="Upload">
+        <dc:Bounds x="870" y="390" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Transcode_di" bpmnElement="Transcode">
+        <dc:Bounds x="1030" y="390" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Storage_di" bpmnElement="Storage">
+        <dc:Bounds x="985" y="505" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1045" y="523" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Join_di" bpmnElement="Join">
+        <dc:Bounds x="1200" y="165" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Submit_di" bpmnElement="Submit">
+        <dc:Bounds x="1290" y="150" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="AutoCheck_di" bpmnElement="AutoCheck">
+        <dc:Bounds x="1440" y="390" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CheckResult_di" bpmnElement="CheckResult" isMarkerVisible="true">
+        <dc:Bounds x="1610" y="405" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1590" y="363" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ManualCheck_di" bpmnElement="ManualCheck">
+        <dc:Bounds x="1575" y="650" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Decision_di" bpmnElement="Decision" isMarkerVisible="true">
+        <dc:Bounds x="1760" y="665" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1740" y="722" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Approved_di" bpmnElement="Approved" isMarkerVisible="true">
+        <dc:Bounds x="1880" y="405" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Scheduled_di" bpmnElement="Scheduled" isMarkerVisible="true">
+        <dc:Bounds x="1980" y="405" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1960" y="462" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Timer_di" bpmnElement="Timer">
+        <dc:Bounds x="2077" y="332" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2045" y="372" width="100" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Publish_di" bpmnElement="Publish">
+        <dc:Bounds x="2160" y="390" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Reject_di" bpmnElement="Reject">
+        <dc:Bounds x="2160" y="500" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndPublished_di" bpmnElement="EndPublished">
+        <dc:Bounds x="2322" y="172" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2300" y="138" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndRejected_di" bpmnElement="EndRejected">
+        <dc:Bounds x="2432" y="172" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2410" y="138" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="f01_di" bpmnElement="f01">
+        <di:waypoint x="286" y="190" />
+        <di:waypoint x="320" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f02_di" bpmnElement="f02">
+        <di:waypoint x="440" y="190" />
+        <di:waypoint x="540" y="190" />
+        <di:waypoint x="540" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f03_di" bpmnElement="f03">
+        <di:waypoint x="600" y="430" />
+        <di:waypoint x="650" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f04_di" bpmnElement="f04">
+        <di:waypoint x="675" y="405" />
+        <di:waypoint x="675" y="120" />
+        <di:waypoint x="380" y="120" />
+        <di:waypoint x="380" y="150" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="682" y="372" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f05_di" bpmnElement="f05">
+        <di:waypoint x="700" y="430" />
+        <di:waypoint x="760" y="430" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="719" y="412" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f06_di" bpmnElement="f06">
+        <di:waypoint x="785" y="405" />
+        <di:waypoint x="785" y="190" />
+        <di:waypoint x="870" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f07_di" bpmnElement="f07">
+        <di:waypoint x="810" y="430" />
+        <di:waypoint x="870" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f08_di" bpmnElement="f08">
+        <di:waypoint x="990" y="190" />
+        <di:waypoint x="1030" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f09_di" bpmnElement="f09">
+        <di:waypoint x="1150" y="190" />
+        <di:waypoint x="1200" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f10_di" bpmnElement="f10">
+        <di:waypoint x="990" y="430" />
+        <di:waypoint x="1030" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f11_di" bpmnElement="f11">
+        <di:waypoint x="1150" y="430" />
+        <di:waypoint x="1225" y="430" />
+        <di:waypoint x="1225" y="215" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f12_di" bpmnElement="f12">
+        <di:waypoint x="1250" y="190" />
+        <di:waypoint x="1290" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f13_di" bpmnElement="f13">
+        <di:waypoint x="1350" y="230" />
+        <di:waypoint x="1350" y="430" />
+        <di:waypoint x="1440" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f14_di" bpmnElement="f14">
+        <di:waypoint x="1560" y="430" />
+        <di:waypoint x="1610" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f15_di" bpmnElement="f15">
+        <di:waypoint x="1660" y="430" />
+        <di:waypoint x="1880" y="430" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1680" y="412" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f16_di" bpmnElement="f16">
+        <di:waypoint x="1635" y="455" />
+        <di:waypoint x="1635" y="650" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1642" y="470" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f17_di" bpmnElement="f17">
+        <di:waypoint x="1695" y="690" />
+        <di:waypoint x="1760" y="690" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f18_di" bpmnElement="f18">
+        <di:waypoint x="1785" y="665" />
+        <di:waypoint x="1785" y="520" />
+        <di:waypoint x="1905" y="520" />
+        <di:waypoint x="1905" y="455" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1792" y="620" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f19_di" bpmnElement="f19">
+        <di:waypoint x="1810" y="690" />
+        <di:waypoint x="2220" y="690" />
+        <di:waypoint x="2220" y="580" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1830" y="672" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f20_di" bpmnElement="f20">
+        <di:waypoint x="1930" y="430" />
+        <di:waypoint x="1980" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f21_di" bpmnElement="f21">
+        <di:waypoint x="2030" y="430" />
+        <di:waypoint x="2160" y="430" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2060" y="412" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f22_di" bpmnElement="f22">
+        <di:waypoint x="2005" y="405" />
+        <di:waypoint x="2005" y="350" />
+        <di:waypoint x="2077" y="350" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2012" y="375" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f23_di" bpmnElement="f23">
+        <di:waypoint x="2113" y="350" />
+        <di:waypoint x="2220" y="350" />
+        <di:waypoint x="2220" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f24_di" bpmnElement="f24">
+        <di:waypoint x="2280" y="430" />
+        <di:waypoint x="2340" y="430" />
+        <di:waypoint x="2340" y="208" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f25_di" bpmnElement="f25">
+        <di:waypoint x="2280" y="540" />
+        <di:waypoint x="2450" y="540" />
+        <di:waypoint x="2450" y="208" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="d01_di" bpmnElement="d01">
+        <di:waypoint x="950" y="470" />
+        <di:waypoint x="993" y="505" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="d02_di" bpmnElement="d02">
+        <di:waypoint x="1070" y="470" />
+        <di:waypoint x="1027" y="505" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,104 @@
+@startuml deployment
+title Видеохостинг «Ракурс»: диаграмма развёртывания
+
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam nodesep 50
+skinparam ranksep 70
+
+node "Устройство зрителя" <<device>> as viewer {
+  artifact "веб-приложение\n(браузер)" as a_web
+  artifact "мобильное\nприложение" as a_mobile
+  artifact "приложение\nSmart TV" as a_tv
+}
+
+node "Компьютер автора" <<device>> as author {
+  artifact "студия автора\n(браузер)" as a_studio
+}
+
+node "Узел CDN, ~40 шт.\n(сети операторов связи,\nточки обмена трафиком)" <<device>> as edge {
+  node "nginx" <<executionEnvironment>> as edge_nginx {
+    artifact "кэш сегментов\nHLS/DASH и обложек" as a_cache
+  }
+}
+
+node "ЦОД-1, Москва" as dc1 {
+  node "Балансировщики L4/L7" <<device>> as lb1
+  node "Origin shield\n(кэш второго уровня)" <<device>> as shield1
+
+  node "Кластер Kubernetes" <<executionEnvironment>> as k8s1 {
+    artifact "api-gateway" as a_gw
+    artifact "accounts:\nauth, notifications" as a_accounts
+    artifact "content:\ncatalog, upload,\nmoderation" as a_content
+    artifact "viewing:\nplayback, search, ads" as a_viewing
+    artifact "social:\nreactions, comments" as a_social
+    artifact "analytics:\nstats, payouts" as a_analytics
+  }
+
+  node "GPU-серверы ×N" <<device>> as gpu1 {
+    artifact "transcoder-worker" as a_transcoder
+  }
+
+  node "Серверы СУБД" <<device>> as db1 {
+    database "PostgreSQL\n(ведущий)" as pg1
+    database "Redis" as redis1
+  }
+
+  node "Аналитические серверы" <<device>> as an1 {
+    database "ClickHouse" as ch1
+    database "OpenSearch" as os1
+  }
+
+  node "Kafka" <<device>> as kafka1
+  node "Ceph (S3)" <<device>> as ceph1
+}
+
+node "ЦОД-2, Москва\n(состав как в ЦОД-1)" as dc2 {
+  node "Кластер Kubernetes" <<executionEnvironment>> as k8s2
+  database "PostgreSQL\n(синхронная реплика)" as pg2
+  node "Kafka" <<device>> as kafka2
+  node "Ceph (S3)" <<device>> as ceph2
+}
+
+cloud "Внешние системы" as ext {
+  node "SMS-шлюз" as sms
+  node "Банк-партнёр" as bank
+  node "Рекламные системы" as adnet
+}
+
+a_web -[hidden]right- a_mobile
+a_mobile -[hidden]right- a_tv
+a_gw -[hidden]right- a_accounts
+a_accounts -[hidden]right- a_content
+a_content -[hidden]right- a_viewing
+a_viewing -[hidden]right- a_social
+a_social -[hidden]right- a_analytics
+sms -[hidden]right- bank
+bank -[hidden]right- adnet
+
+viewer -- edge : HTTPS\nHLS/DASH
+viewer -- lb1 : HTTPS\nREST
+author -- lb1 : HTTPS\nREST, tus
+edge -- shield1 : HTTPS
+shield1 -- ceph1 : S3 API
+lb1 -- k8s1 : HTTP/2
+k8s1 -- db1 : TCP
+k8s1 -- an1 : TCP
+k8s1 -- kafka1 : Kafka
+k8s1 -- ceph1 : S3 API
+gpu1 -- ceph1 : S3 API
+gpu1 -- kafka1 : Kafka
+k8s1 -- ext : HTTPS
+pg1 -- pg2 : синхронная\nрепликация
+ceph1 -- ceph2 : репликация\nобъектов
+kafka1 -- kafka2 : MirrorMaker 2
+
+note bottom of dc2
+  Оба ЦОД обслуживают запросы одновременно.
+  GeoDNS распределяет зрителей между ними,
+  при отказе одного ЦОД весь трафик уходит
+  в другой.
+end note
+
+@enduml
