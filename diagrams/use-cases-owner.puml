@@ -1,0 +1,47 @@
+@startuml use-cases-owner
+title Варианты использования владельца видео
+
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #44546A
+}
+skinparam actorStyle awesome
+left to right direction
+
+actor "Автор\n(владелец видео)" as owner
+
+rectangle "«Ракурс»: студия автора" {
+  usecase "1. Зарегистрироваться\nи создать канал" as UC_reg
+  usecase "2. Войти в студию\nи выйти из неё" as UC_login
+  usecase "3. Загрузить видео" as UC_upload
+  usecase "4. Добавить название\nи описание" as UC_meta
+  usecase "5. Удалить видео" as UC_delete
+  usecase "6. Редактировать видео" as UC_edit
+  usecase "7. Смотреть статистику:\nпросмотры, лайки, выплаты" as UC_stats
+
+  usecase "Восстановить пароль\nпо коду из SMS" as UC_reset
+  usecase "Возобновить оборванную\nзагрузку" as UC_resume
+  usecase "Отметить товары\nиз каталога маркетплейса" as UC_goods
+  usecase "Отметить платную\nрекламу (erid)" as UC_erid
+  usecase "Восстановить видео\nв течение 30 дней" as UC_restore
+  usecase "Скачать отчёт в CSV" as UC_csv
+}
+
+owner --> UC_reg
+owner --> UC_login
+owner --> UC_upload
+owner --> UC_meta
+owner --> UC_delete
+owner --> UC_edit
+owner --> UC_stats
+
+UC_login <.. UC_reset : <<extend>>
+UC_upload <.. UC_resume : <<extend>>
+UC_meta <.. UC_goods : <<extend>>
+UC_meta <.. UC_erid : <<extend>>
+UC_delete <.. UC_restore : <<extend>>
+UC_stats <.. UC_csv : <<extend>>
+@enduml
