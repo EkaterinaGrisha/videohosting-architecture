@@ -9,7 +9,7 @@ skinparam ranksep 70
 
 node "Устройство зрителя" <<device>> as viewer {
   artifact "веб-приложение\n(браузер)" as a_web
-  artifact "мобильное\nприложение" as a_mobile
+  artifact "приложение\niOS / Android" as a_mobile
   artifact "приложение\nSmart TV" as a_tv
 }
 
@@ -17,9 +17,9 @@ node "Компьютер автора" <<device>> as author {
   artifact "студия автора\n(браузер)" as a_studio
 }
 
-node "Узел CDN, ~40 шт.\n(сети операторов связи,\nточки обмена трафиком)" <<device>> as edge {
+node "Узел CDN: 40 площадок,\n128 серверов по 100 Гбит/с\n(сети операторов, точки обмена трафиком)" <<device>> as edge {
   node "nginx" <<executionEnvironment>> as edge_nginx {
-    artifact "кэш сегментов\nHLS/DASH и обложек" as a_cache
+    artifact "кэш сегментов HLS/DASH,\nобложек и коротких видео" as a_cache
   }
 }
 
@@ -30,14 +30,23 @@ node "ЦОД-1, Москва" as dc1 {
   node "Кластер Kubernetes" <<executionEnvironment>> as k8s1 {
     artifact "api-gateway" as a_gw
     artifact "accounts:\nauth, notifications" as a_accounts
-    artifact "content:\ncatalog, upload,\nmoderation" as a_content
-    artifact "viewing:\nplayback, search, ads" as a_viewing
+    artifact "content:\ncatalog, upload,\nmoderation, rights" as a_content
+    artifact "viewing:\nplayback, search,\nfeed, ads" as a_viewing
     artifact "social:\nreactions, comments" as a_social
-    artifact "analytics:\nstats, payouts" as a_analytics
+    artifact "money:\nstats, goods,\npremium" as a_money
   }
 
-  node "GPU-серверы ×N" <<device>> as gpu1 {
+  node "Изолированный сегмент выплат" <<device>> as pay1 {
+    artifact "payouts" as a_payouts
+    database "PostgreSQL\nвыплат" as pgpay1
+  }
+
+  node "GPU-серверы транскодирования, 70 шт." <<device>> as gpu1 {
     artifact "transcoder-worker" as a_transcoder
+  }
+
+  node "GPU-серверы рекомендаций" <<device>> as rec1 {
+    artifact "recommender-inference" as a_rec
   }
 
   node "Серверы СУБД" <<device>> as db1 {
@@ -51,7 +60,7 @@ node "ЦОД-1, Москва" as dc1 {
   }
 
   node "Kafka" <<device>> as kafka1
-  node "Ceph (S3)" <<device>> as ceph1
+  node "Ceph (S3),\n≈ 230 ПБ сырой ёмкости" <<device>> as ceph1
 }
 
 node "ЦОД-2, Москва\n(состав как в ЦОД-1)" as dc2 {
@@ -63,8 +72,11 @@ node "ЦОД-2, Москва\n(состав как в ЦОД-1)" as dc2 {
 
 cloud "Внешние системы" as ext {
   node "SMS-шлюз" as sms
-  node "Банк-партнёр" as bank
+  node "Банк" as bank
+  node "Эквайринг" as acq
   node "Рекламные системы" as adnet
+  node "Оператор\nрекламных данных" as ord
+  node "Маркетплейсы" as mp
 }
 
 a_web -[hidden]right- a_mobile
@@ -73,23 +85,29 @@ a_gw -[hidden]right- a_accounts
 a_accounts -[hidden]right- a_content
 a_content -[hidden]right- a_viewing
 a_viewing -[hidden]right- a_social
-a_social -[hidden]right- a_analytics
+a_social -[hidden]right- a_money
 sms -[hidden]right- bank
-bank -[hidden]right- adnet
+bank -[hidden]right- acq
+acq -[hidden]right- adnet
+adnet -[hidden]right- ord
+ord -[hidden]right- mp
 
 viewer -- edge : HTTPS\nHLS/DASH
 viewer -- lb1 : HTTPS\nREST
 author -- lb1 : HTTPS\nREST, tus
-edge -- shield1 : HTTPS
+edge -- shield1 : HTTPS,\nпромахи кэша
 shield1 -- ceph1 : S3 API
 lb1 -- k8s1 : HTTP/2
 k8s1 -- db1 : TCP
 k8s1 -- an1 : TCP
 k8s1 -- kafka1 : Kafka
 k8s1 -- ceph1 : S3 API
+k8s1 -- rec1 : gRPC
+k8s1 -- pay1 : mTLS
 gpu1 -- ceph1 : S3 API
 gpu1 -- kafka1 : Kafka
 k8s1 -- ext : HTTPS
+pay1 -- bank : HTTPS
 pg1 -- pg2 : синхронная\nрепликация
 ceph1 -- ceph2 : репликация\nобъектов
 kafka1 -- kafka2 : MirrorMaker 2
@@ -98,7 +116,7 @@ note bottom of dc2
   Оба ЦОД обслуживают запросы одновременно.
   GeoDNS распределяет зрителей между ними,
   при отказе одного ЦОД весь трафик уходит
-  в другой.
+  в другой. Персональные данные хранятся
+  только в этих двух ЦОД.
 end note
-
 @enduml

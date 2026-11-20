@@ -7,13 +7,13 @@ skinparam defaultFontName Arial
 skinparam defaultFontSize 13
 skinparam packageStyle rectangle
 skinparam linetype polyline
-skinparam nodesep 60
-skinparam ranksep 55
+skinparam nodesep 70
+skinparam ranksep 60
 
-package "Клиентские приложения" as clients {
-  [Веб-приложение\n(просмотр и студия автора)] as web
-  [Мобильные приложения\niOS, Android] as mobile
-  [Приложение Smart TV] as tv
+package "Клиенты" as clients {
+  [Веб: просмотр\nи студия автора] as web
+  [Приложения\niOS и Android] as mobile
+  [Приложение\nSmart TV] as tv
   [Рабочее место\nмодератора] as modui
 }
 
@@ -21,26 +21,27 @@ package "Клиентские приложения" as clients {
 () "HLS / DASH" as hls
 [API-шлюз] as gw
 [CDN] as cdn
-api -down- gw
-hls -down- cdn
+gw -up- api
+cdn -up- hls
 clients ..> api
 clients ..> hls
 
 package "Аккаунты" as p_accounts {
   component "Учётные записи" as auth {
     database "PostgreSQL" as auth_db
-    database "Redis" as auth_cache
+    database "Redis:\nсессии" as auth_cache
   }
-  component "Уведомления" as notify {
-    database "PostgreSQL" as notify_db
-  }
+  component "Уведомления" as notify
 }
 
 package "Контент" as p_content {
-  [Загрузка] as upload
-  [Обработка видео] as transcode
+  [Загрузка\n(tus)] as upload
+  [Обработка видео\n(GPU)] as transcode
   component "Каталог видео\nи каналов" as catalog {
     database "PostgreSQL" as catalog_db
+  }
+  component "Проверка прав\n(отпечатки)" as rights {
+    database "Индекс\nотпечатков" as fp_db
   }
   component "Модерация" as moderation {
     database "PostgreSQL" as moderation_db
@@ -49,11 +50,12 @@ package "Контент" as p_content {
 }
 
 package "Просмотр" as p_view {
-  component "Воспроизведение" as playback {
-    database "Redis" as playback_cache
-  }
+  [Воспроизведение] as playback
   component "Поиск" as search {
     database "OpenSearch" as search_index
+  }
+  component "Лента и\nрекомендации" as feed {
+    database "Redis:\nпризнаки" as feed_store
   }
   component "Реклама" as ads {
     database "ClickHouse" as ads_db
@@ -63,36 +65,49 @@ package "Просмотр" as p_view {
 package "Взаимодействие" as p_social {
   component "Реакции" as reactions {
     database "PostgreSQL" as reactions_db
-    database "Redis" as reactions_cache
   }
   component "Комментарии" as comments {
-    database "PostgreSQL" as comments_db
+    database "PostgreSQL\n(шарды по видео)" as comments_db
   }
 }
 
-package "Аналитика и выплаты" as p_money {
-  component "Статистика" as stats {
+package "Деньги и аналитика" as p_money {
+  component "Статистика\nи антифрод" as stats {
     database "ClickHouse" as stats_db
   }
-  component "Монетизация\nи выплаты" as payouts {
-    database "PostgreSQL" as payouts_db
+  component "Товары" as goods {
+    database "PostgreSQL" as goods_db
+  }
+  [Подписка\n«Премиум»] as premium
+  component "Начисления\nи выплаты" as payouts {
+    database "PostgreSQL\n(изолированная)" as payouts_db
   }
 }
 
-[Шина событий\nApache Kafka] as bus
-() "События" as events
-bus -up- events
+queue "Шина событий\nApache Kafka" as bus
 
 package "Внешние системы" as external {
   [SMS-шлюз] as sms
-  [Банк-партнёр] as bank
-  [Рекламные системы] as adnet
+  [Банк] as bank
+  [Эквайринг] as acquiring
+  [Рекламные\nсистемы] as adnet
+  [Оператор\nрекламных данных] as ord
+  [Маркетплейсы] as marketplaces
 }
 
-api -[hidden]right-> hls
-gw -[hidden]right-> cdn
+api -[hidden]right- hls
+gw -[hidden]right- cdn
+p_accounts -[hidden]right- p_content
+p_content -[hidden]right- p_view
+p_social -[hidden]right- p_money
+p_money -[hidden]right- bus
+p_accounts -[hidden]down- p_social
+p_content -[hidden]down- p_money
 sms -[hidden]right- bank
-bank -[hidden]right- adnet
+bank -[hidden]right- acquiring
+acquiring -[hidden]right- adnet
+adnet -[hidden]right- ord
+ord -[hidden]right- marketplaces
 
 gw ..> p_accounts
 gw ..> p_content
@@ -100,21 +115,32 @@ gw ..> p_view
 gw ..> p_social
 gw ..> p_money
 
-auth ..> notify
 upload ..> s3
 transcode ..> s3
 cdn ..> s3
 playback ..> catalog
 playback ..> ads
+feed ..> catalog
+moderation ..> rights
 
-p_accounts ..> events
-p_content ..> events
-p_view ..> events
-p_social ..> events
-p_money ..> events
+p_accounts ..> bus
+p_content ..> bus
+p_view ..> bus
+p_social ..> bus
+p_money ..> bus
 
 notify ..> sms
 payouts ..> bank
+premium ..> acquiring
 ads ..> adnet
+ads ..> ord
+catalog ..> ord
+goods ..> marketplaces
 
+note bottom of bus
+  Основные события: video.uploaded, video.processed,
+  video.published, video.deleted, playback.heartbeat,
+  short.viewed, ad.impression, goods.click,
+  reaction.changed, comment.created
+end note
 @enduml

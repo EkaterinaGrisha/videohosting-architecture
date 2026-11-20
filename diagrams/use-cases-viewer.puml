@@ -1,0 +1,50 @@
+@startuml use-cases-viewer
+title Варианты использования зрителя
+
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #44546A
+}
+skinparam actorStyle awesome
+left to right direction
+
+actor "Гость" as guest
+actor "Зритель\nс аккаунтом" as viewer
+guest <|-- viewer
+
+rectangle "«Ракурс»: сайт, приложения, Smart TV" {
+  usecase "1. Искать видео" as UC_search
+  usecase "2. Смотреть видео\nи ленту коротких" as UC_watch
+  usecase "3. Зарегистрироваться" as UC_reg
+  usecase "4. Войти и выйти\nна странице просмотра" as UC_login
+  usecase "5. Поставить и снять лайк" as UC_like
+  usecase "6. Написать комментарий" as UC_comment
+  usecase "7. Удалить свой\nкомментарий" as UC_delete
+
+  usecase "Перейти к товару\nна маркетплейсе" as UC_goods
+  usecase "Продолжить с места\nостановки на другом\nустройстве" as UC_resume
+  usecase "Ответить на\nкомментарий" as UC_reply
+}
+
+guest --> UC_search
+guest --> UC_watch
+guest --> UC_reg
+guest --> UC_login
+viewer --> UC_like
+viewer --> UC_comment
+viewer --> UC_delete
+
+UC_watch <.. UC_goods : <<extend>>
+UC_watch <.. UC_resume : <<extend>>
+UC_comment <.. UC_reply : <<extend>>
+
+note bottom of UC_like
+  Гость тоже видит кнопку «Нравится»
+  и поле комментария. По нажатию
+  открывается вход, после него
+  лайк ставится, а текст сохраняется.
+end note
+@enduml
